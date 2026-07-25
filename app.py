@@ -5,7 +5,7 @@ from google.genai import types
 from PIL import Image
 
 st.set_page_config(page_title="Advanced Gemini App", page_icon="🚀", layout="wide")
-st.title("🚀 My Advanced GenAI Web App")
+st.title("🚀 Bharat Mor's Advanced GenAI Web App")
 
 client = genai.Client()
 
