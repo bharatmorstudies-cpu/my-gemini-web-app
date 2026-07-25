@@ -1,89 +1,36 @@
-import os
-import streamlit as st
-from google import genai
-from google.genai import types
-from PIL import Image
+# 🚀 Bharat Mor's GenAI Web App
 
-st.set_page_config(page_title="Advanced Gemini App", page_icon="🚀", layout="wide")
-st.title("🚀 My Advanced GenAI Web App")
+An advanced, interactive Generative AI chat application built from scratch using Python, the official Google Gemini SDK, and Streamlit. This app allows users to chat with AI, upload images for analysis, adjust creativity levels, and export chat histories locally.
 
-client = genai.Client()
+## ✨ Key Features
+- **Live AI Chat**: Real-time conversational streams powered by `gemini-3.5-flash`.
+- **Multimodal Support**: Upload images (`.jpg`, `.jpeg`, `.png`) directly into the sidebar to chat about visual content.
+- **Creativity Control**: Live temperature slider to alter model response styles from strict/factual to highly creative.
+- **Chat Management**: One-click dashboard clearing and instant chat logs export to local `.txt` file archives.
+- **Branded UI**: Custom developer credit panel displaying authorship directly on the frontend layout.
 
-# --- SIDEBAR CONFIGURATION ---
-st.sidebar.title("⚙️ AI Settings")
+## 🛠️ Technical Stack
+- **Language**: Python 3.14+
+- **AI SDK**: `google-genai`
+- **Frontend Framework**: `streamlit`
+- **Image Processing**: `pillow`
+- **Hosting**: GitHub & Streamlit Community Cloud
 
-# Slider to control creativity (0.0 = factual, 1.0 = creative)
-creativity = st.sidebar.slider("Creativity (Temperature)", min_value=0.0, max_value=2.0, value=1.0, step=0.1)
+## 🚀 How to Run Locally
 
-# File uploader for images in the sidebar
-uploaded_file = st.sidebar.file_uploader("Upload an image to discuss:", type=["jpg", "jpeg", "png"])
+1. **Clone or Download** this directory folder onto your local computer.
+2. Open your terminal or PowerShell inside the folder and install the dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Set up your Google AI Studio developer token string environment variable:
+   ```powershell
+   \$env:GEMINI_API_KEY="your_actual_private_api_key_string"
+   ```
+4. Run the local Streamlit application framework server:
+   ```bash
+   streamlit run app.py
+   ```
 
-if uploaded_file:
-    img = Image.open(uploaded_file)
-    st.sidebar.image(img, caption="Uploaded Image", use_container_width=True)
-
-# --- UTILITY FEATURES ---
-st.sidebar.write("---")
-st.sidebar.title("🛠️ Chat Management")
-
-LOG_FILE = "gemini_chat_history.txt"
-
-# Feature 1: Clear Chat Button
-if st.sidebar.button("🧹 Clear Chat History", use_container_width=True):
-    st.session_state.messages = []
-    st.success("Chat history cleared from screen!")
-    st.rerun()
-
-# Feature 2: Local File Backup Tool
-if st.sidebar.button("💾 Export Chat to TXT", use_container_width=True):
-    if "messages" in st.session_state and st.session_state.messages:
-        try:
-            with open(LOG_FILE, "w", encoding="utf-8") as f:
-                for msg in st.session_state.messages:
-                    f.write(f"{msg['role'].upper()}: {msg['content']}\n\n")
-            st.sidebar.success(f"Saved to local folder as `{LOG_FILE}`!")
-        except Exception as e:
-            st.sidebar.error(f"Failed to save file: {e}")
-    else:
-        st.sidebar.warning("No chat history available to export yet.")
-
-# --- FOOTER CREDITS ---
-st.sidebar.write("---")
-st.sidebar.markdown("### 👨‍💻 Developed by:\n**Bharat Mor**")
-
-# --- CHAT INTERFACE ---
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Display past messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# User chat input box
-if user_prompt := st.chat_input("Ask something or discuss the uploaded image..."):
-    
-    # Show user message
-    with st.chat_message("user"):
-        st.markdown(user_prompt)
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
-
-    # Prepare data payload for Gemini
-    content_payload = [user_prompt]
-    if uploaded_file:
-        content_payload.append(img)
-
-    # Generate AI Response
-    with st.chat_message("assistant"):
-        with st.spinner("Gemini is analyzing..."):
-            try:
-                config = types.GenerateContentConfig(temperature=creativity)
-                response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=content_payload,
-                    config=config,
-                )
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+---
+👨‍💻 **Developed by Bharat Mor**
