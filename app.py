@@ -1,7 +1,6 @@
 import os
 import streamlit as st
 from google import genai
-from google.genai import types
 from PIL import Image
 
 st.set_page_config(page_title="Bharat's Biology AI", page_icon="🧬", layout="wide") 
@@ -88,16 +87,14 @@ if user_prompt := st.chat_input("Ask about Photosynthesis, Genetics, Human Anato
     with st.chat_message("assistant"):
         with st.spinner("Gemini is analyzing..."):
             try:
-                # CRITICAL CHANGE: We compile settings using the SDK's exact types engine object structure
-                config_setup = types.GenerateContentConfig(
-                    temperature=creativity,
-                    system_instruction=biology_rule
-                )
-                
+                # Use clean dictionary-based configuration initialization to avoid parser version mismatches
                 response = client.models.generate_content(
                     model='gemini-2.5-flash', 
                     contents=content_payload,
-                    config=config_setup
+                    config={
+                        'temperature': creativity,
+                        'system_instruction': biology_rule
+                    }
                 )
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
