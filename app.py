@@ -9,7 +9,6 @@ st.title("🧬 Bharat Mor's Class 11 & 12 Biology AI Assistant")
 st.write("Ask any question related to Class 11th or 12th Biology, or upload a diagram to analyze!")
 
 # --- BIOLOGY SYSTEM INSTRUCTION BLOCK ---
-# We define the strict subject block rule right here
 biology_rule = (
     "You are an expert Class 11 and Class 12 Biology Teacher. "
     "You must ONLY answer questions related to Class 11th and 12th Biology topics "
@@ -89,14 +88,16 @@ if user_prompt := st.chat_input("Ask about Photosynthesis, Genetics, Human Anato
     with st.chat_message("assistant"):
         with st.spinner("Gemini is analyzing..."):
             try:
-                # We apply the temperature configuration and system prompt using standard dictionaries
+                # CRITICAL CHANGE: We compile settings using the SDK's exact types engine object structure
+                config_setup = types.GenerateContentConfig(
+                    temperature=creativity,
+                    system_instruction=biology_rule
+                )
+                
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash', # Reverted back to the highly stable flash model
+                    model='gemini-2.5-flash', 
                     contents=content_payload,
-                    config={
-                        'temperature': creativity,
-                        'system_instruction': biology_rule
-                    }
+                    config=config_setup
                 )
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
