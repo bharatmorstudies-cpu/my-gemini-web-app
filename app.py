@@ -8,6 +8,18 @@ st.set_page_config(page_title="Bharat's Biology AI", page_icon="🧬", layout="w
 st.title("🧬 Bharat Mor's Class 11 & 12 Biology AI Assistant")
 st.write("Ask any question related to Class 11th or 12th Biology, or upload a diagram to analyze!")
 
+# --- BIOLOGY SYSTEM INSTRUCTION BLOCK ---
+# We define the strict subject block rule right here
+biology_rule = (
+    "You are an expert Class 11 and Class 12 Biology Teacher. "
+    "You must ONLY answer questions related to Class 11th and 12th Biology topics "
+    "(e.g., Plant physiology, Human physiology, Genetics, Evolution, Ecology, Cell Biology). "
+    "If the user asks about ANY other subject (like physics, math, coding, history, or general chat), "
+    "you must politely refuse to answer and say: 'I am specialized only in Class 11 & 12 Biology topics. "
+    "Please ask a biology-related question.'"
+)
+
+# Connect to the Gemini client
 client = genai.Client()
 
 # --- SIDEBAR CONFIGURATION ---
@@ -77,27 +89,14 @@ if user_prompt := st.chat_input("Ask about Photosynthesis, Genetics, Human Anato
     with st.chat_message("assistant"):
         with st.spinner("Gemini is analyzing..."):
             try:
-                # --- BIOLOGY SYSTEM INSTRUCTION BLOCK ---
-                # This locks the model down to strictly Class 11 and 12 Biology topics
-                biology_rule = (
-                    "You are an expert Class 11 and Class 12 Biology Teacher. "
-                    "You must ONLY answer questions related to Class 11th and 12th Biology topics "
-                    "(e.g., Plant physiology, Human physiology, Genetics, Evolution, Ecology, Cell Biology). "
-                    "If the user asks about ANY other subject (like physics, math, coding, history, or general chat), "
-                    "you must politely refuse to answer and say: 'I am specialized only in Class 11 & 12 Biology topics. "
-                    "Please ask a biology-related question.'"
-                )
-                
-                # Pass both the temperature and the strict system instruction ruleset
-                config = types.GenerateContentConfig(
-                    temperature=creativity,
-                    system_instruction=biology_rule
-                )
-                
+                # We apply the temperature configuration and system prompt using standard dictionaries
                 response = client.models.generate_content(
-                    model='gemini-3.5-flash',
+                    model='gemini-2.5-flash', # Reverted back to the highly stable flash model
                     contents=content_payload,
-                    config=config,
+                    config={
+                        'temperature': creativity,
+                        'system_instruction': biology_rule
+                    }
                 )
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
