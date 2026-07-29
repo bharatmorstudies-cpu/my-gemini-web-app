@@ -3,9 +3,10 @@ import streamlit as st
 from google import genai
 from PIL import Image
 
+# --- PAGE INITIALIZATION ---
 st.set_page_config(page_title="Bharat's Biology Exam Center", page_icon="🧬", layout="wide") 
 st.title("🧬 Bharat Mor's Class 11 & 12 Biology Examination Portal")
-st.write("Complete your registration profile in the sidebar to generate your 50-question examination paper!")
+st.write("Complete your registration profile in the sidebar to generate your 50-question examination paper or practice with our new AI Pop Quiz!")
 
 # --- BIOLOGY CHAT SYSTEM INSTRUCTION RULE ---
 biology_rule = (
@@ -14,7 +15,16 @@ biology_rule = (
     "If the user asks about ANY other subject, politely refuse to answer."
 )
 
+# Initialize GenAI Client
 client = genai.Client()
+
+# --- INITIALIZE SESSION STATES ---
+if "messages" not in st.session_state: 
+    st.session_state.messages = []
+if "exam_submitted" not in st.session_state:
+    st.session_state.exam_submitted = False
+if "ai_quiz_questions" not in st.session_state:
+    st.session_state.ai_quiz_questions = None
 
 # --- SIDEBAR: STUDENT REGISTRATION & EXAM PROFILE ---
 st.sidebar.title("📋 Student Registration")
@@ -38,8 +48,8 @@ st.sidebar.title("🛠️ Chat Management")
 
 if st.sidebar.button("🧹 Clear Chat & Reset Exam", use_container_width=True): 
     st.session_state.messages = []
-    if "exam_started" in st.session_state:
-        st.session_state.exam_started = False
+    st.session_state.exam_submitted = False
+    st.session_state.ai_quiz_questions = None
     st.success("Workspace reset successfully!") 
     st.rerun()
 
@@ -48,7 +58,6 @@ st.sidebar.write("---")
 st.sidebar.markdown("### 👨‍💻 Developed by:\n**Bharat Mor**")
 
 # --- 50 QUESTION EXAM DATA BANK STRUCTURING ---
-# Fully mapped database matrices containing standard curriculum metrics
 class_11_questions = [
     {"q": f"Class 11 - Biology Core Concept Question {i}: Which structure is primarily responsible for cellular respiration?", "o": ["Mitochondria", "Ribosome", "Lysosome", "Golgi Body"], "c": "Mitochondria"} if i % 5 == 0 else
     {"q": f"Class 11 - Biology Core Concept Question {i}: What is the primary structural component of plant cell walls?", "o": ["Cellulose", "Chitin", "Peptidoglycan", "Glycogen"], "c": "Cellulose"} if i % 5 == 1 else
@@ -69,85 +78,88 @@ class_12_questions = [
 
 # --- RENDER MAIN EXAM CONTAINER BOARD ---
 if student_class != "Choose Class" and student_name.strip() != "":
-    st.info(f"📋 **Exam Portal Active for Candidate: {student_name} | Target Standard: {student_class}**")
     
-    # Track selection profile matrices
-    active_pool = class_11_questions if student_class == "Class 11" else class_12_questions
-    student_responses = {}
+    # Tabbed Interface splitting the 50-Question Exam and the AI Feature
+    tab1, tab2 = st.tabs(["📝 Standard 50-Q Exam", "🤖 Dynamic AI Chapter Quiz"])
     
-    # Loop over all 50 questions cleanly
-    st.markdown("### 📝 Examination Sheet (50 Questions)")
-    for index, question_item in enumerate(active_pool):
-        st.markdown(f"**Question {index+1}: {question_item['q']}**")
-        student_responses[index] = st.radio(
-            f"Options for Question {index+1}:", 
-            question_item['o'], 
-            key=f"exam_q_{index}", 
-            label_visibility="collapsed"
-        )
-        st.write("")
+    with tab1:
+        st.info(f"📋 **Exam Portal Active for Candidate: {student_name} | Target Standard: {student_class}**")
+        active_pool = class_11_questions if student_class == "Class 11" else class_12_questions
+        student_responses = {}
         
-    # Process final scoring metric calculations
-    if st.button("🏁 Submit Final Exam Paper", use_container_width=True):
-        final_score = 0
-        st.markdown("---")
-        st.markdown("### 📊 Comprehensive Performance Report Card")
+        st.markdown("### 📝 Examination Sheet (50 Questions)")
         
-        for index, question_item in enumerate(active_pool):
-            if student_responses[index] == question_item['c']:
-                final_score += 1
-                st.success(f"✔️ **Question {index+1}**: Correct! (Answer: {question_item['c']})")
-            else:
-                st.error(f"❌ **Question {index+1}**: Incorrect. You chose '{student_responses[index]}'. Correct: **{question_item['c']}**")
-        
-        # Display Final Score Banner
-        st.write("---")
-        st.metric(label="Total Correct Out of 50", value=f"{final_score} / 50")
-        
-        # Dynamic Candidate Graduation Message Summary Layout
-        percentage = (final_score / 50) * 100
-        if percentage >= 40:
-            st.balloons()
-            st.success(f"🎉 **CONGRATULATIONS, {student_name.upper()}!** You have successfully completed the {student_class} Biology examination set with a total score of **{final_score}/50 ({percentage}%)**.")
-        else:
-            st.warning(f"⚠️ **EXAM COMPLETED: {student_name.upper()}**. You scored **{final_score}/50 ({percentage}%)** on the {student_class} syllabus layout. Review the corrections above and try again!")
-            
-else:
-    # Present notice dashboard warning if registration configuration fields are empty
-    st.warning("⚠️ **Awaiting Registration**: Please enter your **Candidate Full Name** and select **Class 11 or Class 12** in the sidebar to generate your customized 50-Question MCQ test paper.")
-
-st.write("---")
-
-# --- GENERAL CHAT ENGINE INTERFACE ---
-st.markdown("### 💬 Biology Chat Assistant Workspace")
-if "messages" not in st.session_state: 
-    st.session_state.messages = []
-
-for message in st.session_state.messages: 
-    with st.chat_message(message["role"]): 
-        st.markdown(message["content"])
-
-if user_prompt := st.chat_input("Ask a general class biology question here..."):
-    with st.chat_message("user"):
-        st.markdown(user_prompt)
-    st.session_state.messages.append({"role": "user", "content": user_prompt})
-
-    content_payload = [user_prompt]
-    if uploaded_file:
-        content_payload.append(img)
-
-    with st.chat_message("assistant"):
-        with st.spinner("Gemini is analyzing..."):
-            try:
-                response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=content_payload,
-                    config={
-                        'temperature': creativity,
-                        'system_instruction': biology_rule
-                    }
+        # Use a single form layout to avoid refreshing state on clicking radio buttons
+        with st.form(key="biology_exam_form"):
+            for index, question_item in enumerate(active_pool):
+                st.markdown(f"**Question {index+1}: {question_item['q']}**")
+                student_responses[index] = st.radio(
+                    f"Options for Question {index+1}:", 
+                    question_item['o'], 
+                    index=None,  # Leaves options blank by default until selected
+                    key=f"exam_q_{index}", 
+                    label_visibility="collapsed"
                 )
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+                st.write("")
+            
+            submit_exam = st.form_submit_button("🏁 Submit Final Exam Paper", use_container_width=True)
+            
+        if submit_exam or st.session_state.exam_submitted:
+            st.session_state.exam_submitted = True
+            final_score = 0
+            st.markdown("---")
+            st.markdown("### 📊 Comprehensive Performance Report Card")
+            
+            incorrect_topics = []
+            for index, question_item in enumerate(active_pool):
+                # Handle unanswered questions smoothly
+                if student_responses[index] is None:
+                    st.warning(f"⚠️ **Question {index+1}**: Skipped / Unanswered. Correct: **{question_item['c']}**")
+                    incorrect_topics.append(question_item['q'])
+                elif student_responses[index] == question_item['c']:
+                    final_score += 1
+                    st.success(f"✔️ **Question {index+1}**: Correct! (Answer: {question_item['c']})")
+                else:
+                    st.error(f"❌ **Question {index+1}**: Incorrect. You chose '{student_responses[index]}'. Correct: **{question_item['c']}**")
+                    incorrect_topics.append(question_item['q'])
+            
+            st.write("---")
+            st.metric(label="Total Correct Out of 50", value=f"{final_score} / 50")
+            
+            percentage = (final_score / 50) * 100
+            if percentage >= 40:
+                st.balloons()
+                st.success(f"🎉 **CONGRATULATIONS, {student_name.upper()}!** You completed the exam with **{final_score}/50 ({percentage}%)**.")
+            else:
+                st.warning(f"⚠️ **EXAM COMPLETED: {student_name.upper()}**. You scored **{final_score}/50 ({percentage}%)**.")
+            
+            # Connect Exam Failure with Chatbot Assistant
+            if incorrect_topics:
+                st.markdown("#### 💡 Need help with missed questions?")
+                if st.button("🤖 Ask Assistant to analyze my weak areas", key="explain_errors_btn"):
+                    analysis_prompt = f"Hi Teacher, I just took my {student_class} Biology exam and missed several conceptual questions including: {', '.join(incorrect_topics[:3])}. Can you briefly explain the core biological concepts behind these systems?"
+                    st.session_state.messages.append({"role": "user", "content": analysis_prompt})
+                    st.info("Added request to the Workspace below! Scroll down to chat.")
+                    st.rerun()
+
+    with tab2:
+        # Dynamic Chapter Selection Quiz Using Gemini
+        st.markdown("### 🧬 AI-Generated Targeted Chapter Quiz")
+        st.write("Pick a chapter topic below, and our AI will dynamically curate an analytical practice question.")
+        
+        chapter_topic = st.text_input("Enter Topic/Chapter Name:", placeholder="e.g., Human Circulatory System, Photosynthesis, Genetics")
+        
+        if st.button("✨ Generate AI Practice Question", use_container_width=True):
+            if chapter_topic.strip():
+                with st.spinner("AI is generating your question..."):
+                    quiz_prompt = f"Generate 1 high-quality conceptual multiple-choice question for {student_class} level on the topic: '{chapter_topic}'. Provide the question, 4 choices options labeled A, B, C, D, and clearly specify the correct answer at the bottom."
+                    try:
+                        response = client.models.generate_content(
+                            model='gemini-2.5-flash',
+                            contents=[quiz_prompt],
+                            config={'system_instruction': biology_rule}
+                        )
+                        st.session_state.ai_quiz_questions = response.text
+                    except Exception as e:
+                        st.error(f"Error calling Gemini: {e}")
+            else:
